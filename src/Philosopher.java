@@ -1,8 +1,18 @@
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
+/**
+ * <h>To stop running, call <code>.setPhilosophising(false)</code> and wait 2000ms to be certain of full stop(interuption)</h>
+ */
 public class Philosopher implements Runnable {
     private enum State {
-        EATING, THINKING, HUNGRY,PICK_LEFT,PICK_RIGHT,DROPPED_LEFT,DROPPED_RIGHT;
+        EATING,
+        THINKING,
+        HUNGRY,
+        PICKED_LEFT,
+        PICKED_RIGHT,
+        DROPPED_LEFT,
+        DROPPED_RIGHT;
     }
 
     private int id;
@@ -16,11 +26,16 @@ public class Philosopher implements Runnable {
     private int numberOfThinkingTurns = 0;
     private int numberOfHungryTurns = 0;
 
+    //Why the fuck are these double? Are we using decimal milisecounds?????
     private double thinkingTime = 0;
     private double eatingTime = 0;
+
+    private double hungerStartTime; //CurrentMillis start of hungergames
+    private double hungerEndTime;
     private double hungryTime = 0;
     private State state;
-
+    private volatile boolean fed = false;
+    private volatile boolean philosophising = true;
 
     /**
      * @param id
@@ -59,27 +74,27 @@ public class Philosopher implements Runnable {
     }
 
     public double getAverageThinkingTime() {
-        /* TODO
-         * Return the average thinking time
-         * Add comprehensive comments to explain your implementation
-         */
-        return 0;
+        if (numberOfThinkingTurns == 0) {
+            return 0.0;
+        } else {
+            return thinkingTime / numberOfThinkingTurns;
+        }
     }
 
     public double getAverageEatingTime() {
-        /* TODO
-         * Return the average eating time
-         * Add comprehensive comments to explain your implementation
-         */
-        return 0;
+        if (numberOfEatingTurns == 0) {
+            return 0.0;
+        } else {
+            return eatingTime / numberOfEatingTurns;
+        }
     }
 
     public double getAverageHungryTime() {
-        /* TODO
-         * Return the average hungry time
-         * Add comprehensive comments to explain your implementation
-         */
-        return 0;
+        if (numberOfHungryTurns == 0) {
+            return 0.0;
+        } else {
+            return hungryTime / numberOfHungryTurns;
+        }
     }
 
     public int getNumberOfThinkingTurns() {
@@ -106,9 +121,27 @@ public class Philosopher implements Runnable {
         return hungryTime;
     }
 
+    /**
+     * Control philosopher, set <code>philosophising</code> false to stop philosopher(interrupt).
+     * Can take 2000ms to interrupt
+     *
+     * @param philosophising False stops philosophising, and sets fed to true, else sets philosophising = true
+     */
+    public void setPhilosophising(boolean philosophising) {
+        if (philosophising == false) {
+            this.fed = true;
+            this.philosophising = false;
+        } else {
+            this.philosophising = true;
+        }
+    }
+
+
+    /**
+     * Returns if <code>philosophising </code> is set to false
+     */
     @Override
     public void run() {
-        state = State.THINKING;
         /* TODO
          * Hungry,
          * Eat,
@@ -117,7 +150,148 @@ public class Philosopher implements Runnable {
          * Add comprehensive comments to explain your implementation, including deadlock prevention/detection
          */
 
+        //is in thinking?
+        while (philosophising) {
+            fed = false;
+            state = State.THINKING;
+            printState();
+            think();
 
+            state = State.HUNGRY;
+            printState();
+            hunger();
+
+        }
+    }
+
+    /**
+     * Only return once fed, it therefore calls (eat)
+     */
+    private void hunger() {
+        try {
+            hungerStartTime = System.currentTimeMillis();
+            while (!fed) {
+                //Try to access both chopsticks
+                if (leftChopStick.myLock.tryLock(1, TimeUnit.MICROSECONDS)) {
+                    state = State.PICKED_LEFT;
+                    // printState();
+                    //try to pick up and lock the other Chopstick
+                    if (!rightChopStick.myLock.tryLock(1, TimeUnit.MILLISECONDS)) {
+                        /* if (leftChopStick.myLock.getQueueLength() > 0) {
+                            if (DiningPhilosopher.DEBUG) {
+                                System.out.println("Deadlock philosopher_" + id);
+                            }
+                            //Sleep 4 milliseconds before trying again
+                            Thread.sleep(randomGenerator.nextInt(4));
+                            if (!rightChopStick.myLock.tryLock(1, TimeUnit.MILLISECONDS)) {
+                        boolean temp = true;
+                        while (!(leftChopStick.myLock.getQueueLength()> 0) &&temp) {
+                            if(rightChopStick.myLock.tryLock(1, TimeUnit.MILLISECONDS)){
+                                temp=false;
+                            }
+                            if (!philosophising) {
+                                temp=false;
+                            }
+                            //If rightChopSticks lock was not aqcuired and leftChopstick is not wanted by another thread: sleep for  0 or 1ms
+                            Thread.sleep(randomGenerator.nextInt(2));
+                        }
+                        if (!rightChopStick.myLock.isHeldByCurrentThread()) {
+                            //leftChopStick has a queue, and right could not be atained
+                            leftChopStick.myLock.unlock();
+                            state = State.DROPPED_LEFT;
+                            // printState();
+
+                        */
+
+
+                        if (DiningPhilosopher.DEBUG) {
+                            System.out.println("Deadlock philosopher_" + id);
+                        }
+                        //Handle deadlocking by randomizing locking and unlocking, High starvationrate.
+                        //TODO if time is given: Reduce starvation.
+                        leftChopStick.myLock.unlock();
+                        state = State.DROPPED_LEFT;
+                        printState();
+
+                    } else {
+                        //Philosopher owns both chopsticks
+                        hungerEndTime = System.currentTimeMillis();
+                        hungryTime = hungerEndTime - hungerStartTime;
+                        numberOfHungryTurns++;
+                        state = State.PICKED_RIGHT;
+                        printState();
+                        state = State.EATING;
+                        //printState();
+                        if (philosophising) {
+                            try {
+                                eat();
+                            } catch (IllegalAccessException e) {
+                                System.out.println("Philosopher_" + id + ": tried eating without proper tools: "
+                                        + e.getMessage());
+                            }
+
+                            fed = true;
+                            rightChopStick.myLock.unlock();
+                            state = State.DROPPED_RIGHT;
+                            printState();
+                            leftChopStick.myLock.unlock();
+                            state = State.DROPPED_LEFT;
+                            printState();
+                        }
+                    }
+                }
+                /*}
+        }
+                 }
+}*/
+
+            }
+            return;
+
+        } catch (InterruptedException e) {
+            System.out.println("Error in chop sticking for philosopher_" + id + ": " + e.getMessage());
+        }
+
+
+    }
+
+
+    /**
+     * Puts thread to sleep for random time between [0,1000) milliseconds, adds it to
+     * <code>thinkingTime</code> and increments <code>numberOfThinkingTurns</code>
+     */
+    private void think() {
+        try {
+            int rand = randomGenerator.nextInt(1000);
+            Thread.sleep(rand);
+            thinkingTime += rand;
+            numberOfThinkingTurns++;
+
+        } catch (InterruptedException e) {
+            System.out.println("Error in thinking for philosopher: " + id + ": " + e.getMessage());
+        }
+    }
+
+    /**
+     * Puts thread to sleep for random time between [0,1000) milliseconds, adds it to
+     * <code>eatingTime</code> and increments <code>numberOfEatingTurns</code>
+     *
+     * @throws IllegalArgumentException if method was called without owning locks to both left and right chopstick.
+     */
+    private void eat() throws IllegalAccessException {
+        if (leftChopStick.myLock.isHeldByCurrentThread() && rightChopStick.myLock.isHeldByCurrentThread()) {
+            try {
+                int rand = randomGenerator.nextInt(1000);
+                Thread.sleep(rand);
+                eatingTime += rand;
+                numberOfEatingTurns++;
+
+            } catch (InterruptedException e) {
+                System.out.println("Error in eating for philosopher_" + id + ": " + e.getMessage());
+            }
+        } else {
+            throw new IllegalAccessException("Both the right and left chopstick must be obtained to eat");
+        }
     }
 
     /**
@@ -127,15 +301,30 @@ public class Philosopher implements Runnable {
         if (DiningPhilosopher.DEBUG == true) {
             switch (state) {
                 case EATING:
-                    System.out.println("Philosopher " + this.getId() + ": is Eating");
+                    System.out.println("Philosopher_" + this.getId() + ": is Eating");
                     break;
                 case THINKING:
-                    System.out.println("Philosopher " + this.getId() + ": is Thinking");
+                    System.out.println("Philosopher_" + this.getId() + ": is Thinking");
                     break;
                 case HUNGRY:
-                    System.out.println("Philosopher " + this.getId() + ": is Hungry");
+                    System.out.println("Philosopher_" + this.getId() + ": is Hungry");
                     break;
-
+                case PICKED_LEFT:
+                    System.out.println("Philosopher_" + this.getId() + ": picked up his left chopstick "
+                            + leftChopStick.getId());
+                    break;
+                case PICKED_RIGHT:
+                    System.out.println("Philosopher_" + this.getId() + ": picked up his right chopstick_"
+                            + rightChopStick.getId());
+                    break;
+                case DROPPED_LEFT:
+                    System.out.println("Philosopher_" + this.getId() + ": dropped his left chopstick_"
+                            + leftChopStick.getId());
+                    break;
+                case DROPPED_RIGHT:
+                    System.out.println("Philosopher_" + this.getId() + ": dropped his right chopstick_"
+                            + rightChopStick.getId());
+                    break;
             }
         }
     }

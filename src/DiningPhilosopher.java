@@ -13,8 +13,8 @@ public class DiningPhilosopher {
      * 		for example: philosopher # is eating;
      * 		philosopher # picked up his left chopstick (chopstick #)
      */
-    public static volatile boolean DEBUG = false;   //Volatile since only accessed from constructionthread
-                                                    //No need for atomicity
+    public static volatile boolean DEBUG = false;   //Volatile since only accessed from constructionThread
+    //thereof no need for atomicity
     private final int NUMBER_OF_PHILOSOPHERS = 5;
     private int SIMULATION_TIME = 10000;
     private int SEED = 0;
@@ -48,7 +48,10 @@ public class DiningPhilosopher {
              *  Stop all philosophers.
              *  Add comprehensive comments to explain your implementation.
              */
-
+            //Makes philosophers stop philosophising:
+            for (int i = 0; i < NUMBER_OF_PHILOSOPHERS; i++) {
+                philosophers.get(i).setPhilosophising(false);
+            }
 
 
         } finally {
@@ -72,10 +75,10 @@ public class DiningPhilosopher {
             chopSticks.add(new ChopStick(i)); // Adding with id i
         }
         //Add philosophers and hand out chopsticks
-        for (int i = 0; i < NUMBER_OF_PHILOSOPHERS - 1; i++) {//offsetting from 0, left chopstick is phil_id+1
+        for (int i = 0; i < NUMBER_OF_PHILOSOPHERS; i++) {//offsetting from 0, left chopstick is phil_id+1
             Philosopher phil;
             //Give the last philosopher chopstick 4 and 0;
-            if (i == NUMBER_OF_PHILOSOPHERS) {
+            if (i == NUMBER_OF_PHILOSOPHERS - 1) {
                 phil = new Philosopher(i, chopSticks.get(0), chopSticks.get(i), randomSeed);
                 philosophers.add(phil);
             } else {
@@ -98,9 +101,46 @@ public class DiningPhilosopher {
     public void printTable() {
         DecimalFormat df2 = new DecimalFormat(".##");
         System.out.println("\n---------------------------------------------------");
-        System.out.println("PID \tATT \tAET \tAHT \t#TT \t#ET \t#HT");
+//        System.out.println("PID \tATT \tAET \tAHT \t#TT \t#ET \t#HT");
+        StringBuilder stringBuilder = new StringBuilder();
 
+        stringBuilder.append(String.format("%3s", "PID"));
+        stringBuilder.append("\t");
+        stringBuilder.append(String.format("%6s", "ATT"));
+        stringBuilder.append("\t");
+        stringBuilder.append(String.format("%6s", "AET"));
+        stringBuilder.append("\t");
+        stringBuilder.append(String.format("%6s", "AHT"));
+        stringBuilder.append("\t");
+        stringBuilder.append(String.format("%3s", "#TT"));
+        stringBuilder.append("\t");
+        stringBuilder.append(String.format("%3s", "#ET"));
+        stringBuilder.append("\t");
+        stringBuilder.append(String.format("%3s", "#HT"));
+        System.out.println(stringBuilder);
+        stringBuilder = new StringBuilder();
         for (Philosopher p : philosophers) {
+
+            stringBuilder.append(String.format("%3s", p.getId()));
+            stringBuilder.append("\t");
+            stringBuilder.append(String.format("%6s", df2.format(p.getAverageThinkingTime())));
+            stringBuilder.append("\t");
+            stringBuilder.append(String.format("%6s", df2.format(p.getAverageEatingTime())));
+            stringBuilder.append("\t");
+            stringBuilder.append(String.format("%6s", df2.format(p.getAverageHungryTime())));
+            stringBuilder.append("\t");
+            stringBuilder.append(String.format("%3s", p.getNumberOfThinkingTurns()));
+            stringBuilder.append("\t");
+            stringBuilder.append(String.format("%3s", p.getNumberOfEatingTurns()));
+            stringBuilder.append("\t");
+            stringBuilder.append(String.format("%3s", p.getNumberOfHungryTurns()));
+            stringBuilder.append("\n");
+
+        }
+        System.out.println(stringBuilder);
+        System.out.println("---------------------------------------------------\n");
+        /*for (Philosopher p : philosophers) {
+
             System.out.println(p.getId() + "\t"
                     + df2.format(p.getAverageThinkingTime()) + "\t"
                     + df2.format(p.getAverageEatingTime()) + "\t"
@@ -108,9 +148,6 @@ public class DiningPhilosopher {
                     + p.getNumberOfThinkingTurns() + "\t"
                     + p.getNumberOfEatingTurns() + "\t"
                     + p.getNumberOfHungryTurns() + "\t");
-        }
-
-        System.out.println("---------------------------------------------------\n");
+        }*/
     }
-
 }
