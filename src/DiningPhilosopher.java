@@ -44,10 +44,6 @@ public class DiningPhilosopher {
             // Main thread sleeps till time of simulation
             Thread.sleep(SIMULATION_TIME);
 
-            /*	TODO
-             *  Stop all philosophers.
-             *  Add comprehensive comments to explain your implementation.
-             */
             //Makes philosophers stop philosophising:
             for (int i = 0; i < NUMBER_OF_PHILOSOPHERS; i++) {
                 philosophers.get(i).setPhilosophising(false);
@@ -139,15 +135,5 @@ public class DiningPhilosopher {
         }
         System.out.println(stringBuilder);
         System.out.println("---------------------------------------------------\n");
-        /*for (Philosopher p : philosophers) {
-
-            System.out.println(p.getId() + "\t"
-                    + df2.format(p.getAverageThinkingTime()) + "\t"
-                    + df2.format(p.getAverageEatingTime()) + "\t"
-                    + df2.format(p.getAverageHungryTime()) + "\t"
-                    + p.getNumberOfThinkingTurns() + "\t"
-                    + p.getNumberOfEatingTurns() + "\t"
-                    + p.getNumberOfHungryTurns() + "\t");
-        }*/
     }
 }

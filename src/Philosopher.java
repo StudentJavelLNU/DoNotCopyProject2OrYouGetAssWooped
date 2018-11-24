@@ -26,7 +26,7 @@ public class Philosopher implements Runnable {
     private int numberOfThinkingTurns = 0;
     private int numberOfHungryTurns = 0;
 
-    //Why the fuck are these double? Are we using decimal milisecounds?????
+
     private double thinkingTime = 0;
     private double eatingTime = 0;
 
@@ -123,7 +123,6 @@ public class Philosopher implements Runnable {
 
     /**
      * Control philosopher, set <code>philosophising</code> false to stop philosopher(interrupt).
-     * Can take 2000ms to interrupt
      *
      * @param philosophising False stops philosophising, and sets fed to true, else sets philosophising = true
      */
@@ -160,7 +159,6 @@ public class Philosopher implements Runnable {
             state = State.HUNGRY;
             printState();
             hunger();
-
         }
     }
 
@@ -174,54 +172,26 @@ public class Philosopher implements Runnable {
                 //Try to access both chopsticks
                 if (leftChopStick.myLock.tryLock(1, TimeUnit.MICROSECONDS)) {
                     state = State.PICKED_LEFT;
-                    // printState();
+                    printState();
                     //try to pick up and lock the other Chopstick
                     if (!rightChopStick.myLock.tryLock(1, TimeUnit.MILLISECONDS)) {
-                        /* if (leftChopStick.myLock.getQueueLength() > 0) {
-                            if (DiningPhilosopher.DEBUG) {
-                                System.out.println("Deadlock philosopher_" + id);
-                            }
-                            //Sleep 4 milliseconds before trying again
-                            Thread.sleep(randomGenerator.nextInt(4));
-                            if (!rightChopStick.myLock.tryLock(1, TimeUnit.MILLISECONDS)) {
-                        boolean temp = true;
-                        while (!(leftChopStick.myLock.getQueueLength()> 0) &&temp) {
-                            if(rightChopStick.myLock.tryLock(1, TimeUnit.MILLISECONDS)){
-                                temp=false;
-                            }
-                            if (!philosophising) {
-                                temp=false;
-                            }
-                            //If rightChopSticks lock was not aqcuired and leftChopstick is not wanted by another thread: sleep for  0 or 1ms
-                            Thread.sleep(randomGenerator.nextInt(2));
-                        }
-                        if (!rightChopStick.myLock.isHeldByCurrentThread()) {
-                            //leftChopStick has a queue, and right could not be atained
-                            leftChopStick.myLock.unlock();
-                            state = State.DROPPED_LEFT;
-                            // printState();
-
-                        */
-
-
                         if (DiningPhilosopher.DEBUG) {
                             System.out.println("Deadlock philosopher_" + id);
                         }
-                        //Handle deadlocking by randomizing locking and unlocking, High starvationrate.
+                        //Handle deadlocking by "randomizing" locking and unlocking, High starvationrate.
                         //TODO if time is given: Reduce starvation.
                         leftChopStick.myLock.unlock();
                         state = State.DROPPED_LEFT;
                         printState();
-
                     } else {
-                        //Philosopher owns both chopsticks
+                        //Philosopher has locked both chopsticks
                         hungerEndTime = System.currentTimeMillis();
-                        hungryTime = hungerEndTime - hungerStartTime;
+                        hungryTime = hungryTime + (hungerEndTime - hungerStartTime);
                         numberOfHungryTurns++;
                         state = State.PICKED_RIGHT;
                         printState();
                         state = State.EATING;
-                        //printState();
+                        printState();
                         if (philosophising) {
                             try {
                                 eat();
@@ -240,11 +210,6 @@ public class Philosopher implements Runnable {
                         }
                     }
                 }
-                /*}
-        }
-                 }
-}*/
-
             }
             return;
 
@@ -264,6 +229,7 @@ public class Philosopher implements Runnable {
         try {
             int rand = randomGenerator.nextInt(1000);
             Thread.sleep(rand);
+            //Thinking time is only thought if not interrupted
             thinkingTime += rand;
             numberOfThinkingTurns++;
 
@@ -283,6 +249,7 @@ public class Philosopher implements Runnable {
             try {
                 int rand = randomGenerator.nextInt(1000);
                 Thread.sleep(rand);
+                //eatingTime is only eaten if not interrupted
                 eatingTime += rand;
                 numberOfEatingTurns++;
 

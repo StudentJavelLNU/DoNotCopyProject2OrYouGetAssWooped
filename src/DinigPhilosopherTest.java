@@ -1,17 +1,17 @@
 
 
-import static org.junit.Assert.*;
+import org.junit.Test;
 
 import java.util.ArrayList;
 
-import org.junit.Test;
+import static org.junit.Assert.assertTrue;
 
 public class DinigPhilosopherTest {
 
 	/*
 	 * NOTE
 	 * In order to get the same average values use the seed 100, and set the id of the philosopher starting from 0 to 4 (0,1,2,3,4).
-	 * Each philosopher sets the seed to the random number generator as seed+id. 
+	 * Each philosopher sets the seed to the random number generator as seed+id.
 	 * The seed for each philosopher is as follows:
 	 * 	 	P0.seed = 100 + P0.id = 100 + 0 = 100
 	 * 		P1.seed = 100 + P1.id = 100 + 1 = 101
